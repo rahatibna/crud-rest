@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rest API</title>
+</head>
+
+<body>
+
+    <table id="main" border="1" width=100%>
+
+        <tr>
+            <td id="header" width=100% colspan="3">
+                <h1>PHP REST API CRUD</h1>
+            </td>
+            <td>
+                <div id="search-bar">
+                    <label for="search">Search Here </label>
+                    <input type="text" id="search" autocomplete="off">
+                </div>
+            </td>
+        </tr>
+
+        <tr>
+            <form action="" id="add-data">
+
+                <td>
+                    <br>
+                    <label for="sFullName">Full Name</label><input type="text" name="sFullName" id="sFullName">
+                </td>
+                <td>
+                    <br>
+                    <label for="sMobileNumber">Mobile Number</label><input type="text" id="sMobileNumber" name="sMobileNumber">
+                </td>
+                <td>
+                    <br>
+                    <label for="sEmail">Email</label><input type="text" id="sEmail" name="sEmail">
+                </td>
+                <td>
+                    <br>
+                    <button type="submit" id="save-data">Save</button>
+                </td>
+            </form>
+
+        </tr>
+
+    </table>
+    <br>
+    <div id="error-message"></div>
+    <div id="success-message"></div>
+
+
+    <br><br>
+    <table border="1" width=100% id="tablee">
+        <tr>
+            <th>Full Name</th>
+            <th>Mobile Number</th>
+            <th>Email</th>
+            <th>Edit</th>
+            <th>Delete</th>
+        </tr>
+    </table>
+
+    <br><br><br>
+    <div width=50% id="model">
+
+        <form action="" id="update-data">
+
+            <button id="eclose"> X </button>
+            <div><label for="eFullName">Full Name</label><input type="text" id="eFullName" name="eFullName"></div>
+            <div hidden><label for="sid">sid</label><input type="text" id="sid" name="sid"></div>
+            <div><label for="eMobileNumber">Mobile Number</label><input type="text" id="eMobileNumber" name="eMobileNumber"></div>
+            <div><label for="eEmail">Email</label><input type="text" id="eEmail" name="eEmail"></div>
+            <button type="submit" id="update">Update</button>
+        </form>
+    </div>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            $("#model").hide();
+            $("#success-message").hide();
+            $("#error-message").hide();
+
+            // Fetch All Records
+            function loadTable() {
+                $("#tablee").html("");
+                $.ajax({
+                    url: "http://localhost/abc/php-rest-api/api-fetch-all.php",
+                    type: "GET",
+                    success: function(data) {
+                        if (data.status == false) {
+                            $("#tablee").append("<h2>" + data.message + "</h2>")
+                        } else {
+                            $.each(data, function(key, value) {
+                                $("#tablee").append("<tr>" +
+                                    "<td>" + value.FullName + "</td>" +
+                                    "<td>" + value.MobileNumber + "</td>" +
+                                    "<td>" + value.EmailId + "</td>" +
+                                    "<td><button class='edit-btn' data-eid='" + value
+                                    .id + "'>Edit<button/></td>" +
+                                    "<td><button class='delete-btn' data-did='" + value
+                                    .id + "'>Delete<button/></td>" +
+                                    "</tr>");
+
+                            })
+                        }
+                    }
+                });
+
+            }
+            loadTable();
+
+            // Show Success Or Error Message
+            function message(message, status) {
+                if (status == true) {
+                    $("#success-message").html(message).slideDown();
+                    $("#error-message").slideUp();
+                    setTimeout(function() {
+                        $("#success-message").slideUp();
+                    }, 4000);
+                } else if (status == false) {
+                    $("#error-message").html(message).slideDown();
+                    $("#success-message").slideUp();
+                    setTimeout(function() {
+                        $("#error-message").slideUp();
+                    }, 4000);
+                }
+            }
+            // Function for FormData to JSON object
+            function jsonData(targetfrom) {
+                var arr = $(targetfrom).serializeArray();
+                var obj = {};
+                for (let i = 0; i < arr.length; i++) {
+                    if (arr[i].value == "") {
+                        return false;
+
+                    }
+                    obj[arr[i].name] = arr[i].value;
+                }
+
+                var JSON_string = JSON.stringify(obj);
+
+                return JSON_string;
+            }
+
+            // Inserting Records
+            $("#save-data").on("click", function(e) {
+                e.preventDefault();
+                var jsondataa = jsonData("#add-data");
+
+                if (jsondataa == false) {
+                    message("All Fields Are Required.", false);
+                } else {
+
+                    $.ajax({
+                        url: "http://localhost/abc/php-rest-api/api-insert.php",
+                        type: "POST",
+                        data: jsondataa,
+                        success: function(data) {
+                            message(data.message, data.status);
+                            if (data.status == true) {
+                                loadTable();
+                                $("#add-data").trigger("reset");
+
+                            }
+
+                        }
+                    });
+
+                }
+            });
+
+            // Delete Records
+            $(document).on("click", ".delete-btn", function() {
+
+                if (confirm("Do You Really Want To Delete ?")) {
+                    var studentID = $(this).data("did");
+                    var obj = {
+                        sid: studentID
+                    };
+                    var myJSON = JSON.stringify(obj);
+                    $.ajax({
+                        url: "http://localhost/abc/php-rest-api/api-delete.php",
+                        type: "POST",
+                        data: myJSON,
+                        success: function(data) {
+                            message(data.message, data.status);
+                            if (data.status == true) {
+                                loadTable();
+
+                            }
+                        }
+                    });
+
+                }
+
+
+
+            });
+
+            // Updating Single Record fiels
+            $(document).on("click", ".edit-btn", function() {
+                $("#model").slideDown();
+                var studentID = $(this).data("eid");
+                var obj = {
+                    sid: studentID
+                };
+                var myJSON = JSON.stringify(obj);
+                $.ajax({
+                    url: "http://localhost/abc/php-rest-api/api-fetch-single.php",
+                    type: "POST",
+                    data: myJSON,
+                    success: function(data) {
+                        $("#eFullName").val(data[0].FullName);
+                        $("#eMobileNumber").val(data[0].MobileNumber);
+                        $("#eEmail").val(data[0].EmailId);
+                        $("#sid").val(data[0].id);
+                    }
+                });
+            });
+            $("#eclose").on("click", function() {
+                $("#model").slideUp();
+            });
+
+            // Updating Single Record
+            $("#update").on("click", function(e) {
+                e.preventDefault();
+                var jsondataa = jsonData("#update-data");
+
+                if (jsondataa == false) {
+                    message("All Fields Are Required.", false);
+                } else {
+
+                    $.ajax({
+                        url: "http://localhost/abc/php-rest-api/api-update.php",
+                        type: "POST",
+                        data: jsondataa,
+                        success: function(data) {
+                            message(data.message, data.status);
+                            if (data.status == true) {
+                                $("#model").slideUp();
+
+                                loadTable();
+
+                            }
+
+                        }
+                    });
+
+                }
+            });
+
+            $("#search").on("keyup", function() {
+                var search_term = $(this).val();
+                $("#tablee").html("");
+                $.ajax({
+                    url: "http://localhost/abc/php-rest-api/api-search.php?search=" + search_term,
+                    type: "GET",
+                    success: function(data) {
+
+                        if (data.status == false) {
+                            $("#tablee").append("<h2>" + data.message + "</h2>")
+                        } else {
+                            $.each(data, function(key, value) {
+                                $("#tablee").append("<tr>" +
+                                    "<td>" + value.FullName + "</td>" +
+                                    "<td>" + value.MobileNumber + "</td>" +
+                                    "<td>" + value.EmailId + "</td>" +
+                                    "<td><button class='edit-btn' data-eid='" + value
+                                    .id + "'>Edit<button/></td>" +
+                                    "<td><button class='delete-btn' data-did='" + value
+                                    .id + "'>Delete<button/></td>" +
+                                    "</tr>");
+
+                            })
+                        }
+
+                    }
+
+
+                });
+
+            });
+
+        });
+    </script>
+
+</body>
+
+</html>
